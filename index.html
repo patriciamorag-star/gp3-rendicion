@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GP3 Sports — Rendición de Gastos</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0a0a0a;padding:12px;font-size:14px;color:#f0f0f0;min-height:100vh}
+.app{max-width:680px;margin:0 auto}
+.card{background:#1e1e1e;border-radius:12px;border:1px solid #333;padding:14px 16px;margin-bottom:12px}
+.card-dorado{background:#1a1400;border:1px solid #c07800}
+label.lbl{font-size:11px;color:#aaa;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+input,select{width:100%;background:#2a2a2a;border:1px solid #444;border-radius:8px;padding:8px 10px;font-size:13px;color:#f0f0f0;font-family:inherit}
+input::placeholder{color:#666}
+select option{background:#2a2a2a;color:#f0f0f0}
+button{background:#2a2a2a;border:1px solid #555;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;color:#f0f0f0;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+button:hover{background:#3a3a3a}
+.g2{display:grid;gap:10px;margin-bottom:10px}
+.btn-red{background:#e8001d;border:1px solid #e8001d;color:#fff;width:100%;padding:10px;font-weight:700;justify-content:center;font-size:14px}
+.btn-red:hover{background:#c0001a;border-color:#c0001a}
+.btn-gold{background:#c07800;border:1px solid #c07800;color:#fff;font-size:12px;padding:5px 12px}
+.btn-gold:hover{background:#a06600;border-color:#a06600}
+.btn-ghost{background:none;border:none;font-size:12px;color:#666;cursor:pointer;text-decoration:underline;width:100%;justify-content:center;margin-top:6px}
+.sec-title{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.tab-bar{display:flex;border-bottom:1px solid #333;margin-bottom:16px}
+.tab{flex:1;text-align:center;padding:10px;font-size:13px;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;color:#666;font-family:inherit}
+.tab.active{border-bottom:2px solid #e8001d;color:#f0f0f0;font-weight:600}
+.header-logo{background:#000;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:12px;border:1px solid #222}
+.metric{background:#2a2a2a;border-radius:10px;padding:12px 14px;border:1px solid #333;text-align:center}
+.metric-label{font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.metric-val{font-size:17px;font-weight:700}
+.pago-btns{display:flex;gap:8px;margin-bottom:6px}
+.pago-btn{flex:1;justify-content:center;padding:11px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:#2a2a2a;color:#fff;border:2px solid #666;display:inline-flex;align-items:center;gap:5px;font-family:inherit;transition:all .15s}
+.pago-btn:hover{background:#3a3a3a;border-color:#888}
+.pago-btn.sel-ef{background:#1e4d1e;color:#fff;border:2px solid #4caf50;box-shadow:0 0 0 3px #4caf5033}
+.pago-btn.sel-tr{background:#1a3a6a;color:#fff;border:2px solid #4a90d9;box-shadow:0 0 0 3px #4a90d933}
+.pago-btn.sel-tb{background:#6a0010;color:#fff;border:2px solid #e8001d;box-shadow:0 0 0 3px #e8001d33}
+.foto-zona{border:2px dashed #555;border-radius:10px;padding:16px;text-align:center;background:#1a1a1a}
+.foto-zona.err-zona{border-color:#e8001d;background:#1a0505}
+.foto-ok{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0d1f0d;border-radius:8px;border:1px solid #4caf50}
+.row-gasto{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #2a2a2a}
+.tag{font-size:11px;color:#888}
+.trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge-pago{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:700;margin-left:4px}
+.badge-ef{background:#0d1f0d;color:#4caf50}
+.badge-tr{background:#0a0d1f;color:#4a90d9}
+.badge-tb{background:#1a0505;color:#e8001d}
+.list-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #2a2a2a;font-size:13px;color:#f0f0f0}
+.list-row:last-child{border-bottom:none}
+.list-box{background:#242424;border:1px solid #333;border-radius:8px;overflow:hidden;margin-bottom:8px}
+.del-btn{border:none;background:none;cursor:pointer;color:#e8001d;font-size:20px;padding:0 4px;line-height:1}
+.prog-bar{height:7px;border-radius:4px;background:#2a2a2a;margin:6px 0}
+.prog-fill{height:7px;border-radius:4px;transition:width .4s}
+.dash-persona{background:#242424;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #333}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.93);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:8px}
+.err{color:#e8001d;font-size:12px;margin-bottom:8px}
+.badge-user{font-size:11px;padding:3px 10px;border-radius:10px;background:#3a0008;color:#e8001d;font-weight:700;border:1px solid #e8001d44}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header-logo">
+  <img src="logo.png" alt="GP3 Sports" style="height:42px;object-fit:contain" onerror="this.style.display='none'">
+  <div style="flex:1">
+    <p style="font-size:15px;font-weight:700;color:#fff">Rendición de gastos</p>
+    <p style="font-size:11px;color:#555">GP3 Sports 2026</p>
+  </div>
+  <div id="headerUser" style="display:none"><span class="badge-user" id="headerUserName"></span></div>
+</div>
+
+<!-- LOGIN -->
+<div id="viewLogin">
+  <div class="card" style="max-width:340px;margin:0 auto">
+    <p class="sec-title" style="text-align:center;margin-bottom:16px">¿Quién eres?</p>
+    <div style="margin-bottom:12px"><label class="lbl">Selecciona tu nombre</label><select id="loginPersona"><option value="">Seleccionar…</option></select></div>
+    <p id="loginErr" class="err" style="display:none">Selecciona tu nombre para continuar.</p>
+    <button class="btn-red" onclick="entrarOperador()">Ingresar →</button>
+    <div style="text-align:center;margin-top:14px"><button class="btn-ghost" onclick="entrarAdmin()">Administración</button></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="viewAdmin" style="display:none">
+  <div class="tab-bar">
+    <button class="tab active" onclick="adminTab('Personas',this)">👥 Personas</button>
+    <button class="tab" onclick="adminTab('Categorias',this)">🏷 Categorías</button>
+    <button class="tab" onclick="adminTab('Dashboard',this)">📊 Dashboard</button>
+  </div>
+  <div id="tabPersonas"><div class="card"><p class="sec-title">Personas</p><div class="list-box" id="listaPersonas"></div><div style="display:flex;gap:8px"><input type="text" id="nuevaPersona" placeholder="Nombre…" style="flex:1" onkeydown="if(event.key==='Enter')agregarPersona()"><button onclick="agregarPersona()">+ Agregar</button></div></div></div>
+  <div id="tabCategorias" style="display:none"><div class="card"><p class="sec-title">Categorías</p><div class="list-box" id="listaCategorias"></div><div style="display:flex;gap:8px"><input type="text" id="nuevaCat" placeholder="Nueva categoría…" style="flex:1" onkeydown="if(event.key==='Enter')agregarCategoria()"><button onclick="agregarCategoria()">+ Agregar</button></div></div></div>
+  <div id="tabDashboard" style="display:none"><div id="dashContent"></div></div>
+  <button class="btn-ghost" onclick="salirAdmin()">← Volver al inicio</button>
+</div>
+
+<!-- OPERADOR -->
+<div id="viewOperador" style="display:none">
+  <div class="card card-dorado">
+    <div class="g2" style="grid-template-columns:1fr 1fr 80px;margin:0">
+      <div><label class="lbl">Campeonato</label><select id="oEvento"><option value="">Seleccionar…</option><option>10 May — Camp Junior</option><option>24 May — CAV2 — Toay</option><option>31 May — CCV2 — La Serena</option><option>05 Jun — CCV3 — La Serena</option><option>21 Jun — CAV3 + Moto4 — San Nicolás</option><option>09 Ago — CAV4 — Concordia</option><option>06 Sep — CAV5 + CCV4 + Moto4 — San Juan</option><option>27 Sep — Moto4 SC</option><option>11 Oct — CAV6 + CCV5 — Termas</option><option>08 Nov — Moto4</option><option>15 Nov — CAV7 + CCV6 — San Juan</option><option>13 Dic — CCV7 — Interlomas</option></select></div>
+      <div><label class="lbl">Provisión</label><input type="number" id="oProvision" placeholder="0" oninput="actualizarMetricas()"></div>
+      <div><label class="lbl">Moneda</label><select id="oMoneda" onchange="actualizarMetricas()"><option>ARS</option><option>CLP</option><option>USD</option></select></div>
+    </div>
+  </div>
+  <div id="oMetricas" style="display:none;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+    <div class="metric"><p class="metric-label">Provisión</p><p class="metric-val" style="color:#4a90d9" id="oMProv">—</p></div>
+    <div class="metric"><p class="metric-label">Gastado</p><p class="metric-val" style="color:#f0a800" id="oMGastado">—</p></div>
+    <div class="metric"><p class="metric-label">Saldo</p><p class="metric-val" id="oMSaldo">—</p></div>
+  </div>
+  <div id="oBarraWrap" style="display:none;margin-bottom:12px">
+    <div class="prog-bar"><div class="prog-fill" id="oBarra" style="width:0%;background:#4caf50"></div></div>
+    <p style="font-size:11px;color:#555;text-align:right" id="oBarraPct">0% usado</p>
+  </div>
+  <div class="card">
+    <p class="sec-title">Registrar gasto</p>
+    <div class="g2" style="grid-template-columns:130px 1fr">
+      <div><label class="lbl">Fecha</label><input type="date" id="gFecha"></div>
+      <div><label class="lbl">Categoría</label><select id="gCat"></select></div>
+    </div>
+    <div class="g2" style="grid-template-columns:1fr 130px">
+      <div><label class="lbl">Detalle</label><input type="text" id="gDetalle" placeholder="Ej: Nafta para el camión"></div>
+      <div><label class="lbl">Monto</label><input type="number" id="gMonto" placeholder="0"></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="lbl">Medio de pago</label>
+      <div class="pago-btns">
+        <button class="pago-btn" id="pEfectivo" onclick="selPago('Efectivo')">💵 Efectivo</button>
+        <button class="pago-btn" id="pTransferencia" onclick="selPago('Transferencia')">🏦 Transfer.</button>
+        <button class="pago-btn" id="pTransbank" onclick="selPago('Transbank')">💳 Transbank</button>
+      </div>
+      <p id="errPago" class="err" style="display:none">Selecciona el medio de pago.</p>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="lbl">Boleta <span style="color:#e8001d">* obligatoria</span></label>
+      <div id="fotoZona" class="foto-zona">
+        <p style="font-size:13px;color:#777;margin-bottom:10px" id="fotoZonaMsg">📎 Adjunta la boleta para continuar</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="document.getElementById('fotoGaleria').click()">🖼 Galería</button>
+          <button onclick="document.getElementById('fotoCamara').click()">📷 Cámara</button>
+        </div>
+        <input type="file" id="fotoGaleria" accept="image/*" style="display:none" onchange="cargarFoto(this)">
+        <input type="file" id="fotoCamara" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto(this)">
+      </div>
+      <div id="fotoPreview" style="display:none">
+        <div class="foto-ok">
+          <img id="fotoThumb" style="height:40px;width:40px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="verFoto()">
+          <div style="flex:1;min-width:0"><p style="font-size:12px;font-weight:700;color:#4caf50">✓ Boleta adjunta</p><p id="fotoNombreLabel" style="font-size:11px;color:#666" class="trunc"></p></div>
+          <button class="del-btn" onclick="quitarFoto()" style="font-size:14px">× quitar</button>
+        </div>
+      </div>
+    </div>
+    <p id="oErr" class="err" style="display:none"></p>
+    <button class="btn-red" onclick="agregarGasto()">+ Registrar gasto</button>
+  </div>
+  <div class="card" id="oListaCard" style="display:none">
+    <div class="sec-head">
+      <p class="sec-title" style="margin:0">Mis gastos (<span id="oNGastos">0</span>)</p>
+      <button class="btn-gold" onclick="exportarExcel()">📊 Excel</button>
+    </div>
+    <div id="oListaGastos"></div>
+    <div style="border-top:1px solid #2a2a2a;padding-top:10px;margin-top:4px;display:flex;justify-content:space-between">
+      <span style="font-size:13px;font-weight:700">Total</span>
+      <span style="font-size:15px;font-weight:800;color:#f0a800" id="oTotal">$0</span>
+    </div>
+  </div>
+  <button class="btn-ghost" onclick="salirOperador()">Cerrar sesión</button>
+</div>
+
+<div id="lightbox" class="lightbox" style="display:none" onclick="this.style.display='none'">
+  <img id="lightboxImg" src="" alt="boleta">
+</div>
+</div>
+
+<script>
+let personas=["Patri","Juan","María","Carlos"];
+let categorias=["Combustible","Alimentación","Alojamiento","Transporte","Materiales","Servicios","Trofeos/Diplomas","Otro"];
+let gastos=[],usuarioActual="",fotoData=null,fotoNombre="",medioPago="";
+document.getElementById("gFecha").value=new Date().toISOString().split("T")[0];
+const fmt=(n,mon)=>{try{return new Intl.NumberFormat("es-CL",{style:"currency",currency:mon,maximumFractionDigits:0}).format(n);}catch{return mon+" "+Math.round(n).toLocaleString();}};
+const pct=(a,b)=>b>0?Math.min(100,Math.round(a/b*100)):0;
+const show=id=>{["viewLogin","viewAdmin","viewOperador"].forEach(v=>document.getElementById(v).style.display="none");document.getElementById(id).style.display="block";};
+const pagoClase={Efectivo:"badge-ef",Transferencia:"badge-tr",Transbank:"badge-tb"};
+const pagoIcon={Efectivo:"💵",Transferencia:"🏦",Transbank:"💳"};
+const colores=["#e8001d","#f0a800","#4a90d9","#a060c8","#4caf50"];
+function renderLoginSelect(){const s=document.getElementById("loginPersona");s.innerHTML='<option value="">Seleccionar…</option>'+personas.map(p=>`<option>${p}</option>`).join("");}
+function entrarOperador(){const p=document.getElementById("loginPersona").value;if(!p){document.getElementById("loginErr").style.display="block";return;}document.getElementById("loginErr").style.display="none";usuarioActual=p;document.getElementById("headerUserName").textContent=p;document.getElementById("headerUser").style.display="block";renderSelectCat();show("viewOperador");}
+function entrarAdmin(){usuarioActual="admin";document.getElementById("headerUser").style.display="none";renderListaPersonas();renderListaCategorias();show("viewAdmin");}
+function salirAdmin(){usuarioActual="";document.getElementById("headerUser").style.display="none";show("viewLogin");renderLoginSelect();}
+function salirOperador(){usuarioActual="";medioPago="";fotoData=null;fotoNombre="";document.getElementById("headerUser").style.display="none";show("viewLogin");renderLoginSelect();}
+function adminTab(tab,btn){["Personas","Categorias","Dashboard"].forEach(t=>document.getElementById("tab"+t).style.display="none");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));document.getElementById("tab"+tab).style.display="block";btn.classList.add("active");if(tab==="Dashboard")renderDashboard();}
+function renderListaPersonas(){document.getElementById("listaPersonas").innerHTML=personas.length===0?'<p style="padding:10px;font-size:12px;color:#555">Sin personas</p>':personas.map((p,i)=>`<div class="list-row"><span>${p}</span><button class="del-btn" onclick="borrarPersona(${i})">×</button></div>`).join("");}
+function agregarPersona(){const inp=document.getElementById("nuevaPersona");const val=inp.value.trim();if(!val||personas.includes(val)){inp.value="";return;}personas.push(val);inp.value="";renderListaPersonas();}
+function borrarPersona(i){if(personas.length<=1)return;personas.splice(i,1);renderListaPersonas();}
+function renderListaCategorias(){document.getElementById("listaCategorias").innerHTML=categorias.length===0?'<p style="padding:10px;font-size:12px;color:#555">Sin categorías</p>':categorias.map((c,i)=>`<div class="list-row"><span>${c}</span><button class="del-btn" onclick="borrarCategoria(${i})">×</button></div>`).join("");}
+function agregarCategoria(){const inp=document.getElementById("nuevaCat");const val=inp.value.trim();if(!val||categorias.includes(val)){inp.value="";return;}categorias.push(val);inp.value="";renderListaCategorias();renderSelectCat();}
+function borrarCategoria(i){if(categorias.length<=1)return;categorias.splice(i,1);renderListaCategorias();renderSelectCat();}
+function renderSelectCat(){const sel=document.getElementById("gCat");const prev=sel.value;sel.innerHTML=categorias.map(c=>`<option${c===prev?" selected":""}>${c}</option>`).join("");}
+function selPago(p){medioPago=p;document.getElementById("pEfectivo").className="pago-btn"+(p==="Efectivo"?" sel-ef":"");document.getElementById("pTransferencia").className="pago-btn"+(p==="Transferencia"?" sel-tr":"");document.getElementById("pTransbank").className="pago-btn"+(p==="Transbank"?" sel-tb":"");document.getElementById("errPago").style.display="none";}
+function cargarFoto(input){const file=input.files[0];if(!file)return;fotoNombre=file.name;const r=new FileReader();r.onload=e=>{fotoData=e.target.result;document.getElementById("fotoZona").style.display="none";document.getElementById("fotoPreview").style.display="block";document.getElementById("fotoThumb").src=fotoData;document.getElementById("fotoNombreLabel").textContent=fotoNombre;};r.readAsDataURL(file);}
+function quitarFoto(){fotoData=null;fotoNombre="";["fotoGaleria","fotoCamara"].forEach(id=>document.getElementById(id).value="");document.getElementById("fotoPreview").style.display="none";const z=document.getElementById("fotoZona");z.style.display="block";z.className="foto-zona";document.getElementById("fotoZonaMsg").textContent="📎 Adjunta la boleta para continuar";}
+function verFoto(){document.getElementById("lightboxImg").src=fotoData;document.getElementById("lightbox").style.display="flex";}
+function actualizarMetricas(){const prov=parseFloat(document.getElementById("oProvision").value)||0,mon=document.getElementById("oMoneda").value;const mis=gastos.filter(g=>g.persona===usuarioActual),total=mis.reduce((s,g)=>s+g.monto,0),saldo=prov-total,p=pct(total,prov);if(prov>0){document.getElementById("oMetricas").style.display="grid";document.getElementById("oBarraWrap").style.display="block";document.getElementById("oMProv").textContent=fmt(prov,mon);document.getElementById("oMGastado").textContent=fmt(total,mon);const mS=document.getElementById("oMSaldo");mS.textContent=fmt(saldo,mon);mS.style.color=saldo<0?"#e8001d":saldo<prov*0.2?"#f0a800":"#4caf50";const b=document.getElementById("oBarra");b.style.width=p+"%";b.style.background=p>=90?"#e8001d":p>=70?"#c07800":"#4caf50";document.getElementById("oBarraPct").textContent=p+"% usado";}else{document.getElementById("oMetricas").style.display="none";document.getElementById("oBarraWrap").style.display="none";}document.getElementById("oTotal").textContent=fmt(total,mon);}
+function agregarGasto(){const err=document.getElementById("oErr");let ok=true;const evento=document.getElementById("oEvento").value,prov=document.getElementById("oProvision").value;const detalle=document.getElementById("gDetalle").value.trim(),monto=parseFloat(document.getElementById("gMonto").value);if(!evento){err.textContent="Selecciona el campeonato.";err.style.display="block";ok=false;}else if(!prov){err.textContent="Ingresa el monto de la provisión.";err.style.display="block";ok=false;}else if(!detalle){err.textContent="Escribe el detalle del gasto.";err.style.display="block";ok=false;}else if(!monto||monto<=0){err.textContent="Ingresa un monto válido.";err.style.display="block";ok=false;}else{err.style.display="none";}if(!medioPago){document.getElementById("errPago").style.display="block";ok=false;}if(!fotoData){const z=document.getElementById("fotoZona");z.className="foto-zona err-zona";document.getElementById("fotoZonaMsg").textContent="⚠️ La boleta es obligatoria";ok=false;}if(!ok)return;gastos.push({id:Date.now(),persona:usuarioActual,fecha:document.getElementById("gFecha").value,categoria:document.getElementById("gCat").value,detalle,monto,moneda:document.getElementById("oMoneda").value,evento,medioPago,foto:fotoData,fotoNombre});document.getElementById("gDetalle").value="";document.getElementById("gMonto").value="";medioPago="";["pEfectivo","pTransferencia","pTransbank"].forEach(id=>document.getElementById(id).className="pago-btn");quitarFoto();renderListaGastos();actualizarMetricas();}
+function renderListaGastos(){const mis=gastos.filter(g=>g.persona===usuarioActual),card=document.getElementById("oListaCard");document.getElementById("oNGastos").textContent=mis.length;if(mis.length===0){card.style.display="none";return;}card.style.display="block";document.getElementById("oListaGastos").innerHTML=mis.map((g,i)=>`<div class="row-gasto" style="${i===0?"border-top:none":""}"><img style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;cursor:pointer;border:1px solid #333" src="${g.foto}" onclick="verFotoG(${g.id})"><div style="flex:1;min-width:0"><p style="font-size:13px;font-weight:500;color:#f0f0f0" class="trunc">${g.detalle}</p><p class="tag">${g.fecha} · ${g.categoria}<span class="badge-pago ${pagoClase[g.medioPago]}">${pagoIcon[g.medioPago]} ${g.medioPago}</span></p></div><span style="font-size:13px;font-weight:700;flex-shrink:0;color:#f0f0f0">${fmt(g.monto,g.moneda)}</span></div>`).join("");}
+function verFotoG(id){const g=gastos.find(x=>x.id===id);if(g?.foto){document.getElementById("lightboxImg").src=g.foto;document.getElementById("lightbox").style.display="flex";}}
+function renderDashboard(){const cont=document.getElementById("dashContent");if(gastos.length===0){cont.innerHTML='<div class="card"><p style="color:#555;font-size:13px;text-align:center;padding:20px 0">Sin gastos aún.</p></div>';return;}const totalGlobal=gastos.reduce((s,g)=>s+g.monto,0),mon=gastos[0]?.moneda||"ARS";const byP={};gastos.forEach(g=>{if(!byP[g.persona])byP[g.persona]={total:0,gastos:[]};byP[g.persona].total+=g.monto;byP[g.persona].gastos.push(g);});const byE={};gastos.forEach(g=>{if(!byE[g.evento])byE[g.evento]={total:0,n:0};byE[g.evento].total+=g.monto;byE[g.evento].n++;});const byM={Efectivo:0,Transferencia:0,Transbank:0};gastos.forEach(g=>{if(byM[g.medioPago]!==undefined)byM[g.medioPago]+=g.monto;});cont.innerHTML=`<div class="card" style="background:#1a1400;border-color:#c07800"><p class="sec-title" style="color:#c07800">Total global</p><p style="font-size:30px;font-weight:800;color:#f0a800">${fmt(totalGlobal,mon)}</p><p style="font-size:12px;color:#555;margin-top:4px">${gastos.length} gastos · ${Object.keys(byP).length} personas · ${Object.keys(byE).length} campeonatos</p></div><div class="card"><p class="sec-title">Por medio de pago</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div class="metric" style="border-color:#4caf50"><p class="metric-label">💵 Efectivo</p><p class="metric-val" style="color:#4caf50">${fmt(byM.Efectivo,mon)}</p></div><div class="metric" style="border-color:#4a90d9"><p class="metric-label">🏦 Transfer.</p><p class="metric-val" style="color:#4a90d9">${fmt(byM.Transferencia,mon)}</p></div><div class="metric" style="border-color:#e8001d"><p class="metric-label">💳 Transbank</p><p class="metric-val" style="color:#e8001d">${fmt(byM.Transbank,mon)}</p></div></div></div><div class="card"><div class="sec-head"><p class="sec-title" style="margin:0">Por persona</p><button class="btn-gold" onclick="exportarTodo()">📊 Excel global</button></div>${Object.entries(byP).map(([p,d],i)=>{const pp=pct(d.total,totalGlobal),col=colores[i%colores.length];return `<div class="dash-persona"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:#f0f0f0">${p}</span><div style="display:flex;gap:8px;align-items:center"><span style="font-size:14px;font-weight:800;color:${col}">${fmt(d.total,mon)}</span><button onclick="exportarPersona('${p}')" style="font-size:10px;padding:3px 8px">📊</button></div></div><div class="prog-bar"><div class="prog-fill" style="width:${pp}%;background:${col}"></div></div><p style="font-size:11px;color:#555;margin-top:2px">${d.gastos.length} gastos · ${pp}% del total</p></div>`;}).join("")}</div><div class="card"><p class="sec-title">Por campeonato</p>${Object.entries(byE).map(([e,d])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #2a2a2a"><div><p style="font-size:13px;color:#f0f0f0">${e}</p><p style="font-size:11px;color:#555">${d.n} gastos</p></div><span style="font-size:13px;font-weight:700;color:#f0a800">${fmt(d.total,mon)}</span></div>`).join("")}</div><div class="card"><p class="sec-title">Últimos gastos</p>${[...gastos].reverse().slice(0,6).map(g=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #2a2a2a"><img src="${g.foto}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;cursor:pointer" onclick="document.getElementById('lightboxImg').src='${g.foto}';document.getElementById('lightbox').style.display='flex'"><div style="flex:1;min-width:0"><p style="font-size:12px;color:#f0f0f0" class="trunc">${g.persona} · ${g.detalle}</p><p style="font-size:11px;color:#555">${g.fecha} <span class="badge-pago ${pagoClase[g.medioPago]}">${pagoIcon[g.medioPago]} ${g.medioPago}</span></p></div><span style="font-size:13px;font-weight:700;color:#f0f0f0;flex-shrink:0">${fmt(g.monto,g.moneda)}</span></div>`).join("")}</div>`;}
+function exportarExcel(){exportXls(gastos.filter(g=>g.persona===usuarioActual),usuarioActual);}
+function exportarPersona(p){exportXls(gastos.filter(g=>g.persona===p),p);}
+function exportarTodo(){exportXls(gastos,"TODOS");}
+function exportXls(gs,nombre){const evento=gs[0]?.evento||"varios",prov=parseFloat(document.getElementById("oProvision")?.value)||0;const mon=gs[0]?.moneda||"ARS",total=gs.reduce((s,g)=>s+g.monto,0);const filas=[["RENDICIÓN DE CUENTAS — GP3 SPORTS"],["Responsable:",nombre],["Fecha de campeonato:",evento],["Provisión:",prov,mon],["Total gastado:",total,mon],["Saldo:",prov-total,mon],[],["N°","Fecha","Persona","Campeonato","Categoría","Detalle","Medio de pago","Monto","Moneda","Boleta"],...gs.map((g,i)=>[i+1,g.fecha,g.persona,g.evento,g.categoria,g.detalle,g.medioPago,g.monto,g.moneda,g.fotoNombre||"Sin foto"]),   [],["TOTAL","","","","","","",total,mon]];const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(filas);ws["!cols"]=[{wch:4},{wch:12},{wch:12},{wch:28},{wch:16},{wch:28},{wch:14},{wch:12},{wch:8},{wch:22}];XLSX.utils.book_append_sheet(wb,ws,"Rendición");XLSX.writeFile(wb,`rendicion-${nombre.replace(/\s/g,"-")}.xlsx`);}
+renderLoginSelect();renderSelectCat();
+</script>
+</body>
+</html>
