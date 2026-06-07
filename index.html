@@ -135,7 +135,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
         <p class="link-admin" onclick="abrirModalAdmin()">🔐 Acceso administrador</p>
       </div>
       <div id="loginErrConfig" style="display:none;text-align:center;padding:16px">
-        <p style="color:var(--rojo);font-size:13px">⚠️ SCRIPT_URL no configurada.<br>Edita el index.html y reemplaza https://script.google.com/macros/s/AKfycbzW__ArByQy87ofHdPY-xcBd5FbhCIE2bpud2BvnZI-3Sy_OwCQEx9gpwv3plv1LZUmCQ/exec.</p>
+        <p style="color:var(--rojo);font-size:13px">⚠️ Error de conexión con Google Sheets.<br>Contacta al administrador.</p>
       </div>
     </div>
   </div>
@@ -309,7 +309,7 @@ const MEDIOS={efectivo:'💵 Efectivo',transferencia:'🏦 Transferencia',tarjet
 const SYM={CLP:'$',ARS:'$',BRL:'R$'};
 
 async function init(){
-  if(!SCRIPT_URL||SCRIPT_URL==='https://script.google.com/macros/s/AKfycbzW__ArByQy87ofHdPY-xcBd5FbhCIE2bpud2BvnZI-3Sy_OwCQEx9gpwv3plv1LZUmCQ/exec'){
+  if(!SCRIPT_URL||SCRIPT_URL.includes('PLACEHOLDER')){
     show('loginLoading',false);show('loginErrConfig',true);return;
   }
   try{
