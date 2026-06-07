@@ -181,12 +181,12 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
       </div>
       <div class="field"><label>Foto Boleta/Factura</label>
         <div id="fotoZona" style="display:flex;gap:8px;margin-top:6px">
-          <button type="button" onclick="document.getElementById('fotoGaleria').click()" style="flex:1;background:var(--gris2);border:2px dashed var(--gris4);border-radius:10px;padding:14px;color:var(--texto);cursor:pointer;font-size:13px">
+          <label for="fotoGaleria" style="flex:1;background:var(--gris2);border:2px dashed var(--gris4);border-radius:10px;padding:14px;color:var(--texto);cursor:pointer;font-size:13px;text-align:center;display:block">
             🖼️<br><span style="font-size:11px;color:var(--muted)">Galería</span>
-          </button>
-          <button type="button" onclick="document.getElementById('fotoCamara').click()" style="flex:1;background:var(--gris2);border:2px dashed var(--gris4);border-radius:10px;padding:14px;color:var(--texto);cursor:pointer;font-size:13px">
+          </label>
+          <label for="fotoCamara" style="flex:1;background:var(--gris2);border:2px dashed var(--gris4);border-radius:10px;padding:14px;color:var(--texto);cursor:pointer;font-size:13px;text-align:center;display:block">
             📷<br><span style="font-size:11px;color:var(--muted)">Cámara</span>
-          </button>
+          </label>
           <input type="file" id="fotoGaleria" accept="image/*" style="display:none" onchange="cargarFoto(this)">
           <input type="file" id="fotoCamara" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto(this)">
         </div>
