@@ -255,6 +255,22 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
   </div>
 </div>
 
+<!-- MODAL EDITAR GENÉRICO -->
+<div class="modal-overlay" id="modalEditGen" onclick="if(event.target===this)cerrarEditGen()">
+  <div class="modal">
+    <div class="modal-title" id="editGenTitle">✏️ Editar</div>
+    <div class="field"><label id="editGenLabel">Nombre</label>
+      <input type="text" id="editGenInput" placeholder="">
+    </div>
+    <div id="editGenExtra"></div>
+    <div class="err" id="editGenErr"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-rojo" style="flex:1" onclick="guardarEditGen()">GUARDAR</button>
+      <button class="btn btn-gris" style="flex:1" onclick="cerrarEditGen()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalFoto" onclick="cerrarFoto()">
   <img id="modalFotoImg" style="max-width:100%;max-height:90vh;border-radius:8px;">
 </div>
@@ -507,8 +523,22 @@ function renderResumen(){
 }
 function renderMedios(){
   document.getElementById('listaMedios').innerHTML=mediosPago.map(m=>`
-    <div class="lista-item"><div class="lista-item-nombre">${m.nombre}</div>
-    <button class="btn-xs del" onclick="borrarMedio('${m.id}')">Borrar</button></div>`).join('')||'<div class="empty">Sin medios de pago</div>';
+    <div class="lista-item">
+      <div class="lista-item-nombre" style="flex:1">${m.nombre}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="editarMedio('${m.id}','${m.nombre}')">✏️</button>
+        <button class="btn-xs del" onclick="borrarMedio('${m.id}')">🗑</button>
+      </div>
+    </div>`).join('')||'<div class="empty">Sin medios de pago</div>';
+}
+async function editarMedio(id, nombre) {
+  abrirEditGen('Editar Medio de Pago', 'Nombre', nombre, async (nuevo) => {
+    const {error} = await db.from('r_medios_pago').update({nombre:nuevo}).eq('id',id);
+    if(error) throw error;
+    const m = mediosPago.find(x=>x.id===id);
+    if(m) m.nombre=nuevo;
+    renderMediosBtns(); renderMedios();
+  });
 }
 async function agregarMedio(){
   const n=document.getElementById('newMedio').value.trim();if(!n)return;
@@ -522,10 +552,55 @@ async function borrarMedio(id){
   await db.from('r_medios_pago').delete().eq('id',id);
   mediosPago=mediosPago.filter(m=>m.id!==id);renderMediosBtns();renderMedios();
 }
+// ===== EDICIÓN GENÉRICA =====
+let editGenCallback = null;
+function abrirEditGen(title, label, valor, callback, extraHtml='') {
+  document.getElementById('editGenTitle').textContent = '✏️ ' + title;
+  document.getElementById('editGenLabel').textContent = label;
+  document.getElementById('editGenInput').value = valor;
+  document.getElementById('editGenExtra').innerHTML = extraHtml;
+  document.getElementById('editGenErr').textContent = '';
+  editGenCallback = callback;
+  document.getElementById('modalEditGen').classList.add('open');
+  setTimeout(()=>document.getElementById('editGenInput').focus(),100);
+}
+function cerrarEditGen() { document.getElementById('modalEditGen').classList.remove('open'); editGenCallback=null; }
+async function guardarEditGen() {
+  const val = document.getElementById('editGenInput').value.trim();
+  const extra = document.getElementById('editGenExtra').innerHTML;
+  if (!val) { document.getElementById('editGenErr').textContent='El nombre no puede estar vacío'; return; }
+  const btn = document.querySelector('#modalEditGen .btn-rojo');
+  btn.disabled=true; btn.textContent='GUARDANDO...';
+  try {
+    await editGenCallback(val, extra);
+    cerrarEditGen();
+  } catch(e) { document.getElementById('editGenErr').textContent='Error: '+e.message; }
+  btn.disabled=false; btn.textContent='GUARDAR';
+}
+
 function renderPersonas(){
   document.getElementById('listaPersonas').innerHTML=personas.map(p=>`
-    <div class="lista-item"><div><div class="lista-item-nombre">${p.nombre}</div><div class="lista-item-sub">PIN: ${'•'.repeat(String(p.pin).length)}</div></div>
-    <button class="btn-xs del" onclick="borrarPersona('${p.id}')">Borrar</button></div>`).join('')||'<div class="empty">Sin personas</div>';
+    <div class="lista-item">
+      <div style="flex:1"><div class="lista-item-nombre">${p.nombre}</div><div class="lista-item-sub">PIN: ${'•'.repeat(String(p.pin).length)}</div></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="editarPersona('${p.id}','${p.nombre}','${p.pin}')">✏️</button>
+        <button class="btn-xs del" onclick="borrarPersona('${p.id}')">🗑</button>
+      </div>
+    </div>`).join('')||'<div class="empty">Sin personas</div>';
+}
+async function editarPersona(id, nombre, pin) {
+  abrirEditGen('Editar Persona', 'Nombre', nombre, async (nuevoNombre) => {
+    const pinEl = document.getElementById('editPinPersona');
+    const nuevoPin = pinEl ? pinEl.value.trim() : pin;
+    if (nuevoPin && !/^\d{4,6}$/.test(nuevoPin)) throw new Error('PIN debe ser 4-6 dígitos');
+    const updates = {nombre: nuevoNombre};
+    if (nuevoPin) updates.pin = nuevoPin;
+    const {error} = await db.from('r_personas').update(updates).eq('id', id);
+    if (error) throw error;
+    const p = personas.find(x=>x.id===id);
+    if (p) { p.nombre=nuevoNombre; if(nuevoPin) p.pin=nuevoPin; }
+    poblarTodo(); renderPersonas();
+  }, `<div class="field" style="margin-top:12px"><label>Nuevo PIN (dejar vacío para no cambiar)</label><input type="text" id="editPinPersona" maxlength="6" inputmode="numeric" placeholder="####"></div>`);
 }
 async function agregarPersona(){
   const n=document.getElementById('newPersonaNombre').value.trim(),p=document.getElementById('newPersonaPin').value.trim();
@@ -542,8 +617,21 @@ async function borrarPersona(id){
 }
 function renderCampeonatos(){
   document.getElementById('listaCampeonatos').innerHTML=campeonatos.map((c,i)=>`
-    <div class="lista-item"><div class="lista-item-nombre">${c}</div>
-    <button class="btn-xs del" onclick="borrarCampeonato(${i})">Borrar</button></div>`).join('')||'<div class="empty">Sin campeonatos</div>';
+    <div class="lista-item">
+      <div class="lista-item-nombre" style="flex:1">${c}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="editarCampeonato(${i})">✏️</button>
+        <button class="btn-xs del" onclick="borrarCampeonato(${i})">🗑</button>
+      </div>
+    </div>`).join('')||'<div class="empty">Sin campeonatos</div>';
+}
+async function editarCampeonato(i) {
+  const nombre = campeonatos[i];
+  abrirEditGen('Editar Campeonato', 'Nombre', nombre, async (nuevo) => {
+    const {data} = await db.from('r_campeonatos').select('id').eq('nombre', nombre).single();
+    if (data) { const {error}=await db.from('r_campeonatos').update({nombre:nuevo}).eq('id',data.id); if(error)throw error; }
+    campeonatos[i]=nuevo; poblarSel('fCampeonato',campeonatos); renderCampeonatos();
+  });
 }
 async function agregarCampeonato(){
   const n=document.getElementById('newCamp').value.trim();if(!n)return;
@@ -560,8 +648,21 @@ async function borrarCampeonato(i){
 }
 function renderCategorias(){
   document.getElementById('listaCategorias').innerHTML=categorias.map((c,i)=>`
-    <div class="lista-item"><div class="lista-item-nombre">${c}</div>
-    <button class="btn-xs del" onclick="borrarCategoria(${i})">Borrar</button></div>`).join('')||'<div class="empty">Sin categorías</div>';
+    <div class="lista-item">
+      <div class="lista-item-nombre" style="flex:1">${c}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="editarCategoria(${i})">✏️</button>
+        <button class="btn-xs del" onclick="borrarCategoria(${i})">🗑</button>
+      </div>
+    </div>`).join('')||'<div class="empty">Sin categorías</div>';
+}
+async function editarCategoria(i) {
+  const nombre = categorias[i];
+  abrirEditGen('Editar Categoría', 'Nombre', nombre, async (nuevo) => {
+    const {data} = await db.from('r_categorias').select('id').eq('nombre', nombre).single();
+    if (data) { const {error}=await db.from('r_categorias').update({nombre:nuevo}).eq('id',data.id); if(error)throw error; }
+    categorias[i]=nuevo; poblarSel('fCategoria',categorias); renderCategorias();
+  });
 }
 async function agregarCategoria(){
   const n=document.getElementById('newCat').value.trim();if(!n)return;
