@@ -177,14 +177,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
         </div>
       </div>
       <div class="field"><label>Medio de Pago *</label>
-        <div class="pago-grid">
-          <button class="pago-btn" id="pEfectivo" onclick="selPago(this,'efectivo')">💵 Efectivo</button>
-          <button class="pago-btn" id="pTransferencia" onclick="selPago(this,'transferencia')">🏦 Transferencia</button>
-          <button class="pago-btn" id="pTarjeta" onclick="selPago(this,'tarjeta')">💳 Tarjeta</button>
-          <button class="pago-btn" id="pDebito" onclick="selPago(this,'debito')">💳 Débito</button>
-          <button class="pago-btn" id="pCheque" onclick="selPago(this,'cheque')">📄 Cheque</button>
-          <button class="pago-btn" id="pOtro" onclick="selPago(this,'otro')">🔁 Otro</button>
-        </div>
+        <div class="pago-grid" id="pagoGridDyn"></div>
       </div>
       <div class="field"><label>Foto Boleta/Factura</label>
         <div class="foto-zona" id="fotoZona" onclick="document.getElementById('fotoInput').click()">
@@ -209,6 +202,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
     <div class="tab" onclick="adminTab('personas',this)">👤 Personas</div>
     <div class="tab" onclick="adminTab('campeonatos',this)">🏁 Campeonatos</div>
     <div class="tab" onclick="adminTab('categorias',this)">🏷 Categorías</div>
+    <div class="tab" onclick="adminTab('medios',this)">💳 Medios Pago</div>
     <div class="tab" onclick="adminTab('config',this)">⚙️ Config</div>
   </div>
   <div class="tab-content active" id="tabGastos">
@@ -241,6 +235,13 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
       <button onclick="agregarCategoria()">+</button>
     </div>
     <div id="listaCategorias"></div>
+  </div>
+  <div class="tab-content" id="tabMedios">
+    <div class="inline-form">
+      <input type="text" id="newMedio" placeholder="Ej: 💵 Efectivo">
+      <button onclick="agregarMedio()">+</button>
+    </div>
+    <div id="listaMedios"></div>
   </div>
   <div class="tab-content" id="tabConfig">
     <div class="card">
@@ -276,11 +277,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
         <select id="eMoneda"><option value="CLP">CLP</option><option value="ARS">ARS</option><option value="BRL">BRL</option></select>
       </div>
       <div class="field"><label>Medio Pago</label>
-        <select id="ePago">
-          <option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option>
-          <option value="tarjeta">Tarjeta</option><option value="debito">Débito</option>
-          <option value="cheque">Cheque</option><option value="otro">Otro</option>
-        </select>
+        <select id="ePago"></select>
       </div>
     </div>
     <div class="err" id="editErr"></div>
@@ -298,22 +295,24 @@ const SUPA_URL = 'https://mkxyebjawntryyikrjso.supabase.co';
 const SUPA_KEY = 'sb_publishable_j0XNWovYgPeCQhLPHe7-Lw_pRZiLxjC';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-let personas=[],campeonatos=[],categorias=[],gastos=[];
+let personas=[],campeonatos=[],categorias=[],gastos=[],mediosPago=[];
 let usuarioActual='',rolActual='',monedaSel='CLP',pagoSel='',fotoBase64='',adminPin='0000',pinActual='',editandoId=null,filtroActivo='todos';
 const MEDIOS={efectivo:'💵 Efectivo',transferencia:'🏦 Transferencia',tarjeta:'💳 Tarjeta',debito:'💳 Débito',cheque:'📄 Cheque',otro:'🔁 Otro'};
 const SYM={CLP:'$',ARS:'$',BRL:'R$'};
 
 async function init(){
   try{
-    const [rP,rC,rCat,rCfg]= await Promise.all([
+    const [rP,rC,rCat,rCfg,rM]= await Promise.all([
       db.from('r_personas').select('*').order('nombre'),
       db.from('r_campeonatos').select('*').order('nombre'),
       db.from('r_categorias').select('*').order('nombre'),
-      db.from('r_config').select('*').eq('clave','adminPin').single()
+      db.from('r_config').select('*').eq('clave','adminPin').single(),
+      db.from('r_medios_pago').select('*').order('nombre')
     ]);
     personas=(rP.data||[]);
     campeonatos=(rC.data||[]).map(c=>c.nombre);
     categorias=(rCat.data||[]).map(c=>c.nombre);
+    mediosPago=(rM.data||[]);
     adminPin=rCfg.data?.valor||'0000';
     poblarTodo();
     show('loginLoading',false);show('loginForm',true);
@@ -329,6 +328,15 @@ function poblarTodo(){
   poblarSel('fCampeonato',campeonatos);
   poblarSel('fCategoria',categorias);
   document.getElementById('fFecha').value=new Date().toISOString().split('T')[0];
+  renderMediosBtns();
+}
+function renderMediosBtns(){
+  const grid=document.getElementById('pagoGridDyn');
+  if(!grid)return;
+  grid.innerHTML=mediosPago.map(m=>`<button class="pago-btn" onclick="selPago(this,'${m.nombre}')">${m.nombre}</button>`).join('');
+  // también actualizar el select de edición
+  const sel=document.getElementById('ePago');
+  if(sel){sel.innerHTML=mediosPago.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');}
 }
 function poblarSel(id,lista){const el=document.getElementById(id);el.innerHTML='<option value="">— Selecciona —</option>';lista.forEach(c=>el.innerHTML+=`<option>${c}</option>`);}
 function show(id,v){document.getElementById(id).style.display=v?'block':'none';}
@@ -497,6 +505,23 @@ function renderResumen(){
     ${Object.entries(porMedio).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<div class="stat-card"><div class="stat-val" style="font-size:18px">${v.toLocaleString('es-CL')}</div><div class="stat-label">${MEDIOS[m]||m}</div></div>`).join('')}`;
   document.getElementById('resumenDetalle').innerHTML=`<div class="card"><div class="card-title">Por Categoría</div>${Object.entries(porCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gris3);font-size:13px"><span>${c}</span><span style="font-weight:700;color:var(--blanco)">${v.toLocaleString('es-CL')}</span></div>`).join('')}</div>`;
 }
+function renderMedios(){
+  document.getElementById('listaMedios').innerHTML=mediosPago.map(m=>`
+    <div class="lista-item"><div class="lista-item-nombre">${m.nombre}</div>
+    <button class="btn-xs del" onclick="borrarMedio('${m.id}')">Borrar</button></div>`).join('')||'<div class="empty">Sin medios de pago</div>';
+}
+async function agregarMedio(){
+  const n=document.getElementById('newMedio').value.trim();if(!n)return;
+  const {data,error}=await db.from('r_medios_pago').insert({nombre:n}).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  mediosPago.push(data);renderMediosBtns();renderMedios();
+  document.getElementById('newMedio').value='';
+}
+async function borrarMedio(id){
+  if(!confirm('¿Borrar este medio de pago?'))return;
+  await db.from('r_medios_pago').delete().eq('id',id);
+  mediosPago=mediosPago.filter(m=>m.id!==id);renderMediosBtns();renderMedios();
+}
 function renderPersonas(){
   document.getElementById('listaPersonas').innerHTML=personas.map(p=>`
     <div class="lista-item"><div><div class="lista-item-nombre">${p.nombre}</div><div class="lista-item-sub">PIN: ${'•'.repeat(String(p.pin).length)}</div></div>
@@ -558,7 +583,7 @@ function adminTab(tab,el){
   document.getElementById('tab'+tab[0].toUpperCase()+tab.slice(1)).classList.add('active');
   if(tab==='gastos')renderGastos();if(tab==='resumen')renderResumen();
   if(tab==='personas')renderPersonas();if(tab==='campeonatos')renderCampeonatos();
-  if(tab==='categorias')renderCategorias();
+  if(tab==='categorias')renderCategorias();if(tab==='medios')renderMedios();
 }
 async function cambiarPinAdmin(){
   const p=document.getElementById('adminPinNew').value.trim();
