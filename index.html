@@ -86,7 +86,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
 .modal-title{font-family:var(--font-titulo);font-size:18px;font-weight:800;color:var(--blanco);margin-bottom:16px;}
 .loading{text-align:center;padding:30px;color:var(--muted);}
 .empty{text-align:center;padding:30px;color:var(--muted);}
-@media(max-width:400px){.row2{grid-template-columns:1fr;}.pago-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.row2{grid-template-columns:1fr;}.pago-grid{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
@@ -180,10 +180,15 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
         <div class="pago-grid" id="pagoGridDyn"></div>
       </div>
       <div class="field"><label>Foto Boleta/Factura</label>
-        <div class="foto-zona" id="fotoZona" onclick="document.getElementById('fotoInput').click()">
-          <div style="font-size:28px">📷</div>
-          <p>Toca para foto o elegir imagen</p>
-          <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto(this)">
+        <div id="fotoZona" style="display:flex;gap:8px;margin-top:6px">
+          <button type="button" onclick="document.getElementById('fotoGaleria').click()" style="flex:1;background:var(--gris2);border:2px dashed var(--gris4);border-radius:10px;padding:14px;color:var(--texto);cursor:pointer;font-size:13px">
+            🖼️<br><span style="font-size:11px;color:var(--muted)">Galería</span>
+          </button>
+          <button type="button" onclick="document.getElementById('fotoCamara').click()" style="flex:1;background:var(--gris2);border:2px dashed var(--gris4);border-radius:10px;padding:14px;color:var(--texto);cursor:pointer;font-size:13px">
+            📷<br><span style="font-size:11px;color:var(--muted)">Cámara</span>
+          </button>
+          <input type="file" id="fotoGaleria" accept="image/*" style="display:none" onchange="cargarFoto(this)">
+          <input type="file" id="fotoCamara" accept="image/*" capture="environment" style="display:none" onchange="cargarFoto(this)">
         </div>
         <img class="foto-preview" id="fotoPreview">
         <button class="btn-quitar" id="btnQuitarFoto" onclick="quitarFoto()">✕ Quitar foto</button>
@@ -415,7 +420,7 @@ function cargarFoto(inp){
     };img.src=e.target.result;
   };r.readAsDataURL(f);
 }
-function quitarFoto(){fotoBase64='';document.getElementById('fotoPreview').style.display='none';document.getElementById('btnQuitarFoto').style.display='none';document.getElementById('fotoZona').style.display='block';document.getElementById('fotoInput').value='';}
+function quitarFoto(){fotoBase64='';document.getElementById('fotoPreview').style.display='none';document.getElementById('btnQuitarFoto').style.display='none';document.getElementById('fotoZona').style.display='flex';const g=document.getElementById('fotoGaleria');const c=document.getElementById('fotoCamara');if(g)g.value='';if(c)c.value='';}
 
 async function guardarGasto(){
   const f=id=>document.getElementById(id).value;
