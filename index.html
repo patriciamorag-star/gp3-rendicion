@@ -147,6 +147,13 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
 
 <div class="view" id="viewForm">
   <div class="page">
+    <div id="provisionBar" style="display:none;background:var(--gris2);border:1px solid var(--gris4);border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:13px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span>💰 Provisión: <b id="provTotal">$0 CLP</b></span>
+        <span>📤 Gastado: <b id="provGastado" style="color:var(--rojo)">$0 CLP</b></span>
+        <span>✅ Saldo: <b id="provSaldo">$0 CLP</b></span>
+      </div>
+    </div>
     <div class="card">
       <div class="card-title">📋 Registrar Gasto</div>
       <div class="row2">
@@ -386,6 +393,22 @@ function entrar(){
   document.getElementById('hdrRol').textContent=rolActual==='admin'?'Administrador':'Operador';
   document.getElementById(rolActual==='admin'?'viewAdmin':'viewForm').classList.add('active');
   if(rolActual==='admin')cargarGastos();
+  else cargarGastosOperador();
+}
+async function cargarGastosOperador(){
+  const {data}=await db.from('r_gastos').select('monto_clp').eq('persona',usuarioActual);
+  const gastado=(data||[]).reduce((s,g)=>s+(Number(g.monto_clp)||0),0);
+  const p=personas.find(x=>x.nombre===usuarioActual);
+  const provision=Number(p?.provision_clp)||0;
+  const saldo=provision-gastado;
+  if(provision>0){
+    document.getElementById('provisionBar').style.display='block';
+    document.getElementById('provTotal').textContent='$'+provision.toLocaleString('es-CL')+' CLP';
+    document.getElementById('provGastado').textContent='$'+gastado.toLocaleString('es-CL')+' CLP';
+    const sEl=document.getElementById('provSaldo');
+    sEl.textContent='$'+saldo.toLocaleString('es-CL')+' CLP';
+    sEl.style.color=saldo>=0?'var(--verde)':'var(--rojo)';
+  }
 }
 function salir(){
   usuarioActual='';rolActual='';pinActual='';
@@ -443,6 +466,7 @@ async function guardarGasto(){
     document.getElementById('fFecha').value=new Date().toISOString().split('T')[0];
     pagoSel='';document.querySelectorAll('.pago-btn').forEach(b=>b.classList.remove('sel'));
     quitarFoto();setTimeout(()=>ok.style.display='none',3000);
+    cargarGastosOperador();
   }catch(e){err.textContent='Error: '+e.message;err.style.display='block';}
   btn.disabled=false;btn.textContent='REGISTRAR GASTO';
 }
@@ -732,9 +756,33 @@ async function cambiarPinAdmin(){
 }
 function exportarExcel(){
   const lista=filtroActivo==='todos'?gastos:gastos.filter(g=>g.campeonato===filtroActivo);
-  const rows=[['Fecha','Campeonato','Persona','Categoría','Detalle','Monto','Moneda','Medio Pago','N° Factura']];
-  lista.forEach(g=>rows.push([g.fecha,g.campeonato,g.persona,g.categoria,g.detalle,g.monto,g.moneda,g.medio_pago,g.n_factura||'']));
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Gastos');
+  const wb=XLSX.utils.book_new();
+  // Hoja por persona
+  const porPersona={};
+  lista.forEach(g=>{if(!porPersona[g.persona])porPersona[g.persona]=[];porPersona[g.persona].push(g);});
+  Object.entries(porPersona).forEach(([nombre,gs])=>{
+    const rows=[['Fecha','Campeonato','Categoría','Detalle','Monto CLP','Monto ARS','Medio Pago','N° Factura']];
+    gs.forEach(g=>rows.push([g.fecha,g.campeonato,g.categoria,g.detalle,g.monto_clp||'',g.monto_ars||'',g.medio_pago,g.n_factura||'']));
+    const totalCLP=gs.reduce((s,g)=>s+(Number(g.monto_clp)||0),0);
+    const totalARS=gs.reduce((s,g)=>s+(Number(g.monto_ars)||0),0);
+    const p=personas.find(x=>x.nombre===nombre);
+    const provision=Number(p?.provision_clp)||0;
+    rows.push([]);
+    rows.push(['TOTAL CLP','',totalCLP]);
+    rows.push(['TOTAL ARS','',totalARS]);
+    if(provision>0){rows.push(['PROVISIÓN CLP','',provision]);rows.push(['SALDO CLP','',provision-totalCLP]);}
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),nombre.substring(0,31));
+  });
+  // Hoja resumen
+  const resumen=[['Persona','Total CLP','Total ARS','Provisión CLP','Saldo CLP']];
+  Object.entries(porPersona).forEach(([nombre,gs])=>{
+    const totalCLP=gs.reduce((s,g)=>s+(Number(g.monto_clp)||0),0);
+    const totalARS=gs.reduce((s,g)=>s+(Number(g.monto_ars)||0),0);
+    const p=personas.find(x=>x.nombre===nombre);
+    const provision=Number(p?.provision_clp)||0;
+    resumen.push([nombre,totalCLP,totalARS,provision,provision-totalCLP]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumen),'RESUMEN');
   XLSX.writeFile(wb,'GP3_Rendicion_'+new Date().toISOString().split('T')[0]+'.xlsx');
 }
 init();
