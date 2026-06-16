@@ -162,19 +162,15 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
         <input type="text" id="fDetalle" placeholder="Ej: Almuerzo equipo técnico">
       </div>
       <div class="row2">
-        <div class="field"><label>Monto *</label>
-          <input type="number" id="fMonto" placeholder="0" inputmode="decimal" min="0">
+        <div class="field"><label>Monto CLP 🇨🇱</label>
+          <input type="number" id="fMontoCLP" placeholder="Opcional" inputmode="decimal" min="0">
         </div>
-        <div class="field"><label>N° Factura/Boleta</label>
-          <input type="text" id="fFactura" placeholder="Opcional">
+        <div class="field"><label>Monto ARS 🇦🇷</label>
+          <input type="number" id="fMontoARS" placeholder="Opcional" inputmode="decimal" min="0">
         </div>
       </div>
-      <div class="field"><label>Moneda *</label>
-        <div class="moneda-grid">
-          <button class="moneda-btn sel" id="mCLP" onclick="selMoneda(this,'CLP')">🇨🇱 CLP</button>
-          <button class="moneda-btn" id="mARS" onclick="selMoneda(this,'ARS')">🇦🇷 ARS</button>
-          <button class="moneda-btn" id="mBRL" onclick="selMoneda(this,'BRL')">🇧🇷 BRL</button>
-        </div>
+      <div class="field"><label>N° Factura/Boleta</label>
+        <input type="text" id="fFactura" placeholder="Opcional">
       </div>
       <div class="field"><label>Medio de Pago *</label>
         <div class="pago-grid" id="pagoGridDyn"></div>
@@ -212,6 +208,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
   </div>
   <div class="tab-content active" id="tabGastos">
     <div class="filtros" id="filtrosCamp"></div>
+    <div class="filtros" id="filtrosPersona" style="margin-top:4px"></div>
     <div id="listaGastos"><div class="loading">Cargando...</div></div>
   </div>
   <div class="tab-content" id="tabResumen">
@@ -223,6 +220,7 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
     <div class="inline-form">
       <input type="text" id="newPersonaNombre" placeholder="Nombre completo">
       <input type="text" id="newPersonaPin" placeholder="PIN (4-6 dígitos)" maxlength="6" inputmode="numeric">
+      <input type="number" id="newPersonaProvision" placeholder="Provisión CLP" inputmode="numeric" min="0">
       <button onclick="agregarPersona()">+</button>
     </div>
     <div id="listaPersonas"></div>
@@ -290,13 +288,11 @@ body{background:var(--negro);color:var(--texto);font-family:var(--font-body);min
     <div class="field"><label>Categoría</label><select id="eCategoria"></select></div>
     <div class="field"><label>Detalle</label><input type="text" id="eDetalle"></div>
     <div class="row2">
-      <div class="field"><label>Monto</label><input type="number" id="eMonto" min="0"></div>
-      <div class="field"><label>N° Factura</label><input type="text" id="eFactura"></div>
+      <div class="field"><label>Monto CLP 🇨🇱</label><input type="number" id="eMontoCLP" min="0" placeholder="Opcional"></div>
+      <div class="field"><label>Monto ARS 🇦🇷</label><input type="number" id="eMontoARS" min="0" placeholder="Opcional"></div>
     </div>
     <div class="row2">
-      <div class="field"><label>Moneda</label>
-        <select id="eMoneda"><option value="CLP">CLP</option><option value="ARS">ARS</option><option value="BRL">BRL</option></select>
-      </div>
+      <div class="field"><label>N° Factura</label><input type="text" id="eFactura"></div>
       <div class="field"><label>Medio Pago</label>
         <select id="ePago"></select>
       </div>
@@ -317,7 +313,7 @@ const SUPA_KEY = 'sb_publishable_j0XNWovYgPeCQhLPHe7-Lw_pRZiLxjC';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 let personas=[],campeonatos=[],categorias=[],gastos=[],mediosPago=[];
-let usuarioActual='',rolActual='',monedaSel='CLP',pagoSel='',fotoBase64='',adminPin='0000',pinActual='',editandoId=null,filtroActivo='todos';
+let usuarioActual='',rolActual='',pagoSel='',fotoBase64='',adminPin='0000',pinActual='',editandoId=null,filtroActivo='todos',filtroPersona='todos';
 const MEDIOS={efectivo:'💵 Efectivo',transferencia:'🏦 Transferencia',tarjeta:'💳 Tarjeta',debito:'💳 Débito',cheque:'📄 Cheque',otro:'🔁 Otro'};
 const SYM={CLP:'$',ARS:'$',BRL:'R$'};
 
@@ -426,19 +422,23 @@ async function guardarGasto(){
   const f=id=>document.getElementById(id).value;
   const err=document.getElementById('formErr'),ok=document.getElementById('formMsg');
   err.style.display='none';ok.style.display='none';
-  if(!f('fFecha')||!f('fCampeonato')||!f('fCategoria')||!f('fDetalle')||!f('fMonto')||!pagoSel){
-    err.textContent='Completa todos los campos obligatorios (*)';err.style.display='block';return;
+  const montoCLP=parseFloat(f('fMontoCLP'))||null;
+  const montoARS=parseFloat(f('fMontoARS'))||null;
+  if(!f('fFecha')||!f('fCampeonato')||!f('fCategoria')||!f('fDetalle')||(!montoCLP&&!montoARS)||!pagoSel){
+    err.textContent='Completa todos los campos obligatorios (al menos un monto)';err.style.display='block';return;
   }
   const btn=document.getElementById('btnGuardar');btn.disabled=true;btn.textContent='GUARDANDO...';
   try{
     const {error}=await db.from('r_gastos').insert({
       fecha:f('fFecha'),campeonato:f('fCampeonato'),persona:usuarioActual,
-      categoria:f('fCategoria'),detalle:f('fDetalle'),monto:parseFloat(f('fMonto')),
-      moneda:monedaSel,medio_pago:pagoSel,n_factura:f('fFactura')||null,foto:fotoBase64||null
+      categoria:f('fCategoria'),detalle:f('fDetalle'),
+      monto:montoCLP||montoARS,moneda:montoCLP?'CLP':'ARS',
+      monto_clp:montoCLP,monto_ars:montoARS,
+      medio_pago:pagoSel,n_factura:f('fFactura')||null,foto:fotoBase64||null
     });
     if(error)throw error;
     ok.style.display='block';
-    ['fDetalle','fMonto','fFactura'].forEach(x=>document.getElementById(x).value='');
+    ['fDetalle','fMontoCLP','fMontoARS','fFactura'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('fCampeonato').value='';document.getElementById('fCategoria').value='';
     document.getElementById('fFecha').value=new Date().toISOString().split('T')[0];
     pagoSel='';document.querySelectorAll('.pago-btn').forEach(b=>b.classList.remove('sel'));
@@ -459,18 +459,30 @@ function renderFiltros(){
   let h=`<div class="filtro ${filtroActivo==='todos'?'active':''}" onclick="filtrar('todos')">Todos</div>`;
   camps.forEach(c=>h+=`<div class="filtro ${filtroActivo===c?'active':''}" onclick="filtrar('${c}')">${c}</div>`);
   document.getElementById('filtrosCamp').innerHTML=h;
+  // filtro por persona
+  const pers=[...new Set(gastos.map(g=>g.persona))].filter(Boolean);
+  let hp=`<div class="filtro ${filtroPersona==='todos'?'active':''}" style="background:var(--gris3)" onclick="filtrarPersona('todos')">👤 Todos</div>`;
+  pers.forEach(p=>hp+=`<div class="filtro ${filtroPersona===p?'active':''}" style="background:var(--gris3)" onclick="filtrarPersona('${p}')">${p}</div>`);
+  document.getElementById('filtrosPersona').innerHTML=hp;
 }
+function filtrarPersona(p){filtroPersona=p;renderFiltros();renderGastos();renderResumen();}
 function filtrar(c){filtroActivo=c;renderFiltros();renderGastos();}
 function fmtM(m,mon){return (SYM[mon]||'$')+Number(m).toLocaleString('es-CL')+' '+(mon||'');}
 function fmtF(f){try{return new Date(f+'T12:00:00').toLocaleDateString('es-CL');}catch(e){return f||'';}}
 function renderGastos(){
-  const lista=filtroActivo==='todos'?gastos:gastos.filter(g=>g.campeonato===filtroActivo);
+  let lista=filtroActivo==='todos'?gastos:gastos.filter(g=>g.campeonato===filtroActivo);
+  if(filtroPersona!=='todos')lista=lista.filter(g=>g.persona===filtroPersona);
   if(!lista.length){document.getElementById('listaGastos').innerHTML='<div class="empty">Sin gastos registrados</div>';return;}
-  document.getElementById('listaGastos').innerHTML=lista.map(g=>`
+  document.getElementById('listaGastos').innerHTML=lista.map(g=>{
+    const montos=[];
+    if(g.monto_clp)montos.push(`<span style="color:var(--verde)">$${Number(g.monto_clp).toLocaleString('es-CL')} CLP</span>`);
+    if(g.monto_ars)montos.push(`<span style="color:#60a5fa">$${Number(g.monto_ars).toLocaleString('es-CL')} ARS</span>`);
+    if(!montos.length)montos.push(fmtM(g.monto,g.moneda));
+    return `
     <div class="gasto-item ${g.medio_pago||''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1">
-          <div class="gasto-monto">${fmtM(g.monto,g.moneda)}</div>
+          <div class="gasto-monto">${montos.join(' · ')}</div>
           <div class="gasto-detalle">${g.detalle||''}</div>
           <div class="gasto-meta">${g.persona} · ${g.categoria} · ${fmtF(g.fecha)}</div>
           <div class="gasto-meta">${MEDIOS[g.medio_pago]||g.medio_pago||''} ${g.n_factura?'· Fac:'+g.n_factura:''} · ${g.campeonato}</div>
@@ -481,7 +493,8 @@ function renderGastos(){
         <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="abrirEdit('${g.id}')">✏️ Editar</button>
         <button class="btn-xs del" onclick="borrarGasto('${g.id}')">🗑 Borrar</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function verFoto(id){const g=gastos.find(x=>x.id===id);if(!g||!g.foto)return;document.getElementById('modalFotoImg').src=g.foto;document.getElementById('modalFoto').classList.add('open');}
 function cerrarFoto(){document.getElementById('modalFoto').classList.remove('open');}
@@ -495,9 +508,9 @@ function abrirEdit(id){
   const g=gastos.find(x=>x.id===id);if(!g)return;editandoId=id;
   document.getElementById('eFecha').value=g.fecha||'';
   document.getElementById('eDetalle').value=g.detalle||'';
-  document.getElementById('eMonto').value=g.monto||'';
+  document.getElementById('eMontoCLP').value=g.monto_clp||'';
+  document.getElementById('eMontoARS').value=g.monto_ars||'';
   document.getElementById('eFactura').value=g.n_factura||'';
-  document.getElementById('eMoneda').value=g.moneda||'CLP';
   document.getElementById('ePago').value=g.medio_pago||'efectivo';
   document.getElementById('eCampeonato').innerHTML=campeonatos.map(c=>`<option value="${c}"${c===g.campeonato?' selected':''}>${c}</option>`).join('');
   document.getElementById('eCategoria').innerHTML=categorias.map(c=>`<option value="${c}"${c===g.categoria?' selected':''}>${c}</option>`).join('');
@@ -509,7 +522,9 @@ async function guardarEdit(){
   if(!editandoId)return;
   const btn=document.querySelector('#modalEdit .btn-rojo');btn.disabled=true;
   try{
-    const data={fecha:document.getElementById('eFecha').value,campeonato:document.getElementById('eCampeonato').value,categoria:document.getElementById('eCategoria').value,detalle:document.getElementById('eDetalle').value,monto:parseFloat(document.getElementById('eMonto').value),moneda:document.getElementById('eMoneda').value,medio_pago:document.getElementById('ePago').value,n_factura:document.getElementById('eFactura').value||null};
+    const montoCLP=parseFloat(document.getElementById('eMontoCLP').value)||null;
+    const montoARS=parseFloat(document.getElementById('eMontoARS').value)||null;
+    const data={fecha:document.getElementById('eFecha').value,campeonato:document.getElementById('eCampeonato').value,categoria:document.getElementById('eCategoria').value,detalle:document.getElementById('eDetalle').value,monto:montoCLP||montoARS,moneda:montoCLP?'CLP':'ARS',monto_clp:montoCLP,monto_ars:montoARS,medio_pago:document.getElementById('ePago').value,n_factura:document.getElementById('eFactura').value||null};
     const {error}=await db.from('r_gastos').update(data).eq('id',editandoId);
     if(error)throw error;
     Object.assign(gastos.find(g=>g.id===editandoId),data);
@@ -518,7 +533,8 @@ async function guardarEdit(){
   btn.disabled=false;
 }
 function renderResumen(){
-  const lista=filtroActivo==='todos'?gastos:gastos.filter(g=>g.campeonato===filtroActivo);
+  let lista=filtroActivo==='todos'?gastos:gastos.filter(g=>g.campeonato===filtroActivo);
+  if(filtroPersona!=='todos')lista=lista.filter(g=>g.persona===filtroPersona);
   const porMedio={},porCat={};
   lista.forEach(g=>{const m=g.medio_pago||'otro';porMedio[m]=(porMedio[m]||0)+Number(g.monto);porCat[g.categoria]=(porCat[g.categoria]||0)+Number(g.monto);});
   document.getElementById('statsGrid').innerHTML=`
@@ -584,36 +600,53 @@ async function guardarEditGen() {
 }
 
 function renderPersonas(){
-  document.getElementById('listaPersonas').innerHTML=personas.map(p=>`
+  document.getElementById('listaPersonas').innerHTML=personas.map(p=>{
+    const gastadoCLP=gastos.filter(g=>g.persona===p.nombre).reduce((s,g)=>s+(Number(g.monto_clp)||0),0);
+    const provision=Number(p.provision_clp)||0;
+    const saldo=provision-gastadoCLP;
+    return `
     <div class="lista-item">
-      <div style="flex:1"><div class="lista-item-nombre">${p.nombre}</div><div class="lista-item-sub">PIN: ${'•'.repeat(String(p.pin).length)}</div></div>
+      <div style="flex:1">
+        <div class="lista-item-nombre">${p.nombre}</div>
+        <div class="lista-item-sub">PIN: ${'•'.repeat(String(p.pin).length)}</div>
+        ${provision>0?`<div style="font-size:12px;margin-top:4px">
+          Provisión: <b>$${provision.toLocaleString('es-CL')} CLP</b> · 
+          Gastado: <b style="color:var(--rojo)">$${gastadoCLP.toLocaleString('es-CL')}</b> · 
+          Saldo: <b style="color:${saldo>=0?'var(--verde)':'var(--rojo)'}">$${saldo.toLocaleString('es-CL')}</b>
+        </div>`:''}
+      </div>
       <div style="display:flex;gap:6px">
-        <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="editarPersona('${p.id}','${p.nombre}','${p.pin}')">✏️</button>
+        <button class="btn-xs" style="border-color:var(--azul);color:var(--azul)" onclick="editarPersona('${p.id}','${p.nombre}','${p.pin}',${provision})">✏️</button>
         <button class="btn-xs del" onclick="borrarPersona('${p.id}')">🗑</button>
       </div>
-    </div>`).join('')||'<div class="empty">Sin personas</div>';
+    </div>`;
+  }).join('')||'<div class="empty">Sin personas</div>';
 }
-async function editarPersona(id, nombre, pin) {
+async function editarPersona(id, nombre, pin, provision=0) {
   abrirEditGen('Editar Persona', 'Nombre', nombre, async (nuevoNombre) => {
     const pinEl = document.getElementById('editPinPersona');
+    const provEl = document.getElementById('editProvisionPersona');
     const nuevoPin = pinEl ? pinEl.value.trim() : pin;
+    const nuevaProv = provEl ? parseFloat(provEl.value)||0 : provision;
     if (nuevoPin && !/^\d{4,6}$/.test(nuevoPin)) throw new Error('PIN debe ser 4-6 dígitos');
-    const updates = {nombre: nuevoNombre};
+    const updates = {nombre: nuevoNombre, provision_clp: nuevaProv};
     if (nuevoPin) updates.pin = nuevoPin;
     const {error} = await db.from('r_personas').update(updates).eq('id', id);
     if (error) throw error;
     const p = personas.find(x=>x.id===id);
-    if (p) { p.nombre=nuevoNombre; if(nuevoPin) p.pin=nuevoPin; }
+    if (p) { p.nombre=nuevoNombre; if(nuevoPin) p.pin=nuevoPin; p.provision_clp=nuevaProv; }
     poblarTodo(); renderPersonas();
-  }, `<div class="field" style="margin-top:12px"><label>Nuevo PIN (dejar vacío para no cambiar)</label><input type="text" id="editPinPersona" maxlength="6" inputmode="numeric" placeholder="####"></div>`);
+  }, `<div class="field" style="margin-top:12px"><label>Nuevo PIN (dejar vacío para no cambiar)</label><input type="text" id="editPinPersona" maxlength="6" inputmode="numeric" placeholder="####"></div>
+  <div class="field" style="margin-top:8px"><label>Provisión CLP</label><input type="number" id="editProvisionPersona" inputmode="numeric" min="0" value="${provision}" placeholder="0"></div>`);
 }
 async function agregarPersona(){
   const n=document.getElementById('newPersonaNombre').value.trim(),p=document.getElementById('newPersonaPin').value.trim();
+  const prov=parseFloat(document.getElementById('newPersonaProvision').value)||0;
   if(!n||!p)return;if(!/^\d{4,6}$/.test(p)){alert('PIN: 4-6 dígitos');return;}
-  const {data,error}=await db.from('r_personas').insert({nombre:n,pin:p}).select().single();
+  const {data,error}=await db.from('r_personas').insert({nombre:n,pin:p,provision_clp:prov}).select().single();
   if(error){alert('Error: '+error.message);return;}
   personas.push(data);poblarTodo();renderPersonas();
-  document.getElementById('newPersonaNombre').value='';document.getElementById('newPersonaPin').value='';
+  document.getElementById('newPersonaNombre').value='';document.getElementById('newPersonaPin').value='';document.getElementById('newPersonaProvision').value='';
 }
 async function borrarPersona(id){
   if(!confirm('¿Borrar esta persona?'))return;
